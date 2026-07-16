@@ -6,9 +6,9 @@ const CartContext = createContext();
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
-  const [wishlist, setWishlist] = useState([]); // Added Wishlist State
+  const [wishlist, setWishlist] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isWishlistOpen, setIsWishlistOpen] = useState(false); // Added Wishlist Drawer Toggle
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
   // 1. Load cart and wishlist from localStorage on initial render
   useEffect(() => {
@@ -49,22 +49,36 @@ export function CartProvider({ children }) {
   }, [wishlist]);
 
   // --- CART HELPERS ---
-  const addToCart = (product) => {
+  
+  // Custom add to cart supporting size variants
+  const addToCart = (product, size = 'M') => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === product.id);
+      // Find if this exact product ID WITH this exact size already exists in cart
+      const existingItem = prevCart.find(
+        (item) => item.id === product.id && item.selectedSize === size
+      );
+
       if (existingItem) {
+        // If found, increment its quantity
         return prevCart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === product.id && item.selectedSize === size
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
-      return [...prevCart, { ...product, quantity: 1 }];
+      
+      // If not found, add a new line item with its unique selected size
+      return [...prevCart, { ...product, quantity: 1, selectedSize: size }];
     });
     setIsCartOpen(true); 
   };
 
-  const removeFromCart = (productId) => {
+  // Remove matching both product ID and specific size
+  const removeFromCart = (productId, size) => {
     setCart((prevCart) => {
-      const updatedCart = prevCart.filter((item) => item.id !== productId);
+      const updatedCart = prevCart.filter(
+        (item) => !(item.id === productId && item.selectedSize === size)
+      );
       if (updatedCart.length === 0) {
         localStorage.removeItem('urban_fit_cart');
       }
@@ -72,11 +86,12 @@ export function CartProvider({ children }) {
     });
   };
 
-  const updateQuantity = (productId, amount) => {
+  // Update quantity matching both product ID and specific size
+  const updateQuantity = (productId, size, amount) => {
     setCart((prevCart) => {
       const updatedCart = prevCart
         .map((item) => {
-          if (item.id === productId) {
+          if (item.id === productId && item.selectedSize === size) {
             const newQty = item.quantity + amount;
             return { ...item, quantity: newQty };
           }
@@ -96,10 +111,8 @@ export function CartProvider({ children }) {
     setWishlist((prevWishlist) => {
       const exists = prevWishlist.find((item) => item.id === product.id);
       if (exists) {
-        // Remove from wishlist if it already exists
         return prevWishlist.filter((item) => item.id !== product.id);
       } else {
-        // Add to wishlist
         return [...prevWishlist, product];
       }
     });
@@ -124,7 +137,6 @@ export function CartProvider({ children }) {
         setIsCartOpen,
         cartCount,
         cartTotal,
-        // Wishlist exports
         wishlist,
         toggleWishlist,
         isInWishlist,

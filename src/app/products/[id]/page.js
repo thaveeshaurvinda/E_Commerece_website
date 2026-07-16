@@ -1,42 +1,66 @@
 'use client';
-import Link from 'next/link';
-import { useCart } from "./context/CartContext";
-import { products } from "./products";
 
-export default function Home() {
+import React, { use, useState } from 'react';
+import Link from 'next/link';
+import { useCart } from "../../context/CartContext";
+import { products } from "../../products";
+
+export default function ProductDetailPage({ params: paramsPromise }) {
+  // Unwrap params using React.use()
+  const params = use(paramsPromise);
+  const productId = parseInt(params.id);
+
+  // Find the requested product
+  const product = products.find((p) => p.id === productId);
+
+  // State to track selected size
+  const [selectedSize, setSelectedSize] = useState('M');
+
   const { 
+    cart,
     addToCart, 
-    cart, 
-    removeFromCart, 
-    updateQuantity, 
-    isCartOpen, 
-    setIsCartOpen, 
+    removeFromCart,
+    updateQuantity,
     cartCount, 
     cartTotal,
-    wishlist,
-    toggleWishlist,
+    isCartOpen,
+    setIsCartOpen, 
+    toggleWishlist, 
     isInWishlist,
     isWishlistOpen,
-    setIsWishlistOpen
+    setIsWishlistOpen, 
+    wishlist 
   } = useCart();
 
-  return (
-    <main className="min-h-screen bg-white text-black font-sans relative overflow-x-hidden">
-      
-      {/* 1. Promo Announcement Bar */}
-      <div className="promo-bar bg-black text-white text-center py-2 text-xs tracking-widest font-bold uppercase">
-        Free Shipping Worldwide on Orders Over $75
+  // If the product doesn't exist, show error state
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-black p-4">
+        <h2 className="text-xl font-black uppercase tracking-widest mb-4">Product Not Found</h2>
+        <Link href="/" className="bg-black text-white px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-neutral-800">
+          Return Home
+        </Link>
       </div>
+    );
+  }
 
-      {/* 2. Navigation Header */}
+  const isFavorited = isInWishlist(product.id);
+
+  const handleAddToCart = () => {
+    addToCart(product, selectedSize);
+  };
+
+  return (
+    <main className="min-h-screen bg-white text-black font-sans relative">
+      
+      {/* 1. Header */}
       <header className="border-b border-gray-100 py-4 px-6 sticky top-0 bg-white/95 backdrop-blur z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="text-xl font-black tracking-widest cursor-pointer">URBAN FIT</Link>
           <nav className="hidden md:flex items-center space-x-8 text-xs font-bold uppercase tracking-widest">
-            <a href="#" className="hover:text-gray-500">New In</a>
+            <Link href="/" className="hover:text-gray-500">Shop All</Link>
             <a href="#" className="hover:text-gray-500">Men</a>
             <a href="#" className="hover:text-gray-500">Women</a>
-            <a href="#" className="hover:text-gray-500">Accessories</a>
             <span className="text-red-500">Sale</span>
           </nav>
           
@@ -47,7 +71,6 @@ export default function Home() {
             >
               <span>Favorites ({wishlist.length})</span>
             </button>
-            
             <button 
               onClick={() => setIsCartOpen(true)} 
               className="hover:underline uppercase text-xs font-bold"
@@ -58,110 +81,86 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 3. Hero Section */}
-      <section className="text-center py-20 px-4 bg-gray-50">
-        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">New Collection</p>
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-4">Summer Essentials</h1>
-        <p className="text-sm font-bold tracking-widest text-red-500 uppercase">DROP NOW LIVE • UP TO 50% OFF</p>
-        <div className="mt-8">
-          <a href="#" className="bg-black text-white px-8 py-3.5 text-sm font-bold uppercase tracking-widest hover:bg-neutral-800 transition inline-block">
-            Shop Now
-          </a>
+      {/* 2. Product Presentation Area */}
+      <section className="max-w-6xl mx-auto px-6 py-12 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20">
+        
+        {/* Left Side: Editorial Image Box */}
+        <div className="relative aspect-[3/4] bg-gray-100 border border-gray-100 flex items-center justify-center text-2xl font-black tracking-widest">
+          {product.placeholderText}
+          {product.discount && (
+            <span className="absolute top-6 left-6 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1">
+              {product.discount}
+            </span>
+          )}
         </div>
-      </section>
 
-      {/* 4. Dynamic Product Grid */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-black uppercase tracking-wider mb-8 text-center">Trending Now</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {products.map((product) => {
-            const favorited = isInWishlist(product.id);
-            return (
-              <div key={product.id} className="group relative flex flex-col justify-between">
-                
-                {/* Product Image Container */}
-                <div className="relative aspect-[3/4] bg-gray-100 flex items-center justify-center font-black text-lg tracking-widest mb-4 overflow-hidden border border-gray-100">
-                  <Link href={`/products/${product.id}`} className="absolute inset-0 flex items-center justify-center cursor-pointer hover:opacity-85 transition">
-                    {product.placeholderText}
-                  </Link>
-                  
-                  {product.discount && (
-                    <span className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 pointer-events-none">
-                      {product.discount}
-                    </span>
-                  )}
+        {/* Right Side: Product Customization & Ordering */}
+        <div className="flex flex-col justify-between">
+          <div>
+            <span className="text-xs text-gray-400 font-bold tracking-widest uppercase block mb-2">URBAN FIT ESSENTIALS</span>
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight mb-3">{product.name}</h1>
+            <p className="text-lg font-black mb-6">${product.price.toFixed(2)}</p>
+            
+            <p className="text-sm text-gray-600 leading-relaxed tracking-wide mb-8">
+              {product.description}
+            </p>
 
-                  {/* Wishlist Heart Toggle Button */}
-                  <button 
-                    onClick={() => toggleWishlist(product)}
-                    className="absolute top-4 right-4 bg-white text-black p-2 rounded-full shadow-sm hover:scale-110 transition z-10"
-                    aria-label="Toggle Wishlist"
-                  >
-                    {favorited ? (
-                      <span className="text-red-500">❤️</span>
-                    ) : (
-                      <span className="text-gray-400 hover:text-black">🖤</span>
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Link href={`/products/${product.id}`} className="hover:underline">
-                      <h3 className="text-sm font-bold uppercase tracking-wider">{product.name}</h3>
-                    </Link>
+            {/* Sizes (Interactive State) */}
+            <div className="mb-8">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-3">
+                Select Size: <span className="text-black font-black">{selectedSize}</span>
+              </span>
+              <div className="flex space-x-3">
+                {['S', 'M', 'L', 'XL'].map((size) => {
+                  const isSelected = selectedSize === size;
+                  return (
                     <button 
-                      onClick={() => addToCart(product, 'M')}
-                      className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black transition"
+                      key={size} 
+                      onClick={() => setSelectedSize(size)}
+                      className={`w-12 h-12 flex items-center justify-center text-xs font-bold tracking-wider border transition-all duration-150 ${
+                        isSelected 
+                          ? 'bg-black text-white border-black scale-105' 
+                          : 'border-gray-300 text-black hover:border-black'
+                      }`}
                     >
-                      + Add To Cart
+                      {size}
                     </button>
-                  </div>
-                  <p className="text-sm font-black">${product.price.toFixed(2)}</p>
-                </div>
-
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </section>
+            </div>
 
-      {/* 5. Shop The Look Editorial Callout */}
-      <section className="bg-neutral-900 text-white text-center py-20 px-6">
-        <div className="max-w-3xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-2">Limited Time Offer</span>
-          <h2 className="text-3xl font-black uppercase tracking-tight mb-4">Shop The Look</h2>
-          <p className="text-gray-400 text-sm tracking-wide max-w-md mx-auto mb-8">
-            Elevate your streetwear game with selected summer drops.
-          </p>
-          <a href="#" className="bg-white text-black px-8 py-3.5 text-sm font-bold uppercase tracking-widest hover:bg-gray-100 transition inline-block">
-            Explore Styles
-          </a>
-        </div>
-      </section>
+            {/* Product Feature Details */}
+            <div className="border-t border-gray-100 pt-6 mb-8">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-3">Product Highlights</span>
+              <ul className="list-disc list-inside text-xs text-gray-500 space-y-1.5 leading-relaxed">
+                {product.details.map((detail, idx) => (
+                  <li key={idx}>{detail}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
 
-      {/* 6. Brand Trust Badges */}
-      <section className="bg-gray-50 border-y border-gray-100 py-12">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div className="text-xl mb-2">📦</div>
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Fast Delivery</h3>
-            <p className="text-xs text-gray-500 tracking-wider">Across The World</p>
-          </div>
-          <div>
-            <div className="text-xl mb-2">🛡️</div>
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Secure Payment</h3>
-            <p className="text-xs text-gray-500 tracking-wider">100% Protected</p>
-          </div>
-          <div>
-            <div className="text-xl mb-2">💬</div>
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">24/7 Support</h3>
-            <p className="text-xs text-gray-500 tracking-wider">We're Here To Help</p>
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <button 
+              onClick={handleAddToCart}
+              className="w-full bg-black text-white py-4 text-xs font-bold uppercase tracking-widest hover:bg-neutral-800 transition"
+            >
+              Add To Cart
+            </button>
+            <button 
+              onClick={() => toggleWishlist(product)}
+              className="w-full border border-gray-300 py-4 text-xs font-bold uppercase tracking-widest hover:border-black transition flex items-center justify-center space-x-2"
+            >
+              <span>{isFavorited ? '❤️ Favorited' : '🖤 Add to Favorites'}</span>
+            </button>
           </div>
         </div>
+
       </section>
 
-      {/* 7. Interactive Cart Slide-Over Drawer */}
+      {/* Interactive Cart Slide-Over Drawer */}
       {isCartOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-50 transition-opacity" onClick={() => setIsCartOpen(false)} />
@@ -239,7 +238,7 @@ export default function Home() {
         </>
       )}
 
-      {/* 8. Interactive Wishlist Slide-Over Drawer */}
+      {/* Interactive Wishlist Slide-Over Drawer */}
       {isWishlistOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-50 transition-opacity" onClick={() => setIsWishlistOpen(false)} />
@@ -292,8 +291,8 @@ export default function Home() {
         </>
       )}
 
-      {/* 9. Footer */}
-      <footer className="bg-black text-white/50 text-center py-8 text-xs border-t border-neutral-900">
+      {/* 3. Footer */}
+      <footer className="bg-black text-white/50 text-center py-8 text-xs border-t border-neutral-900 mt-20">
         © {new Date().getFullYear()} Urban Fit. All rights reserved.
       </footer>
 
