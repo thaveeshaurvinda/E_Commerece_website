@@ -10,7 +10,6 @@ export function CartProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
-  // 1. Load cart and wishlist from localStorage on initial render
   useEffect(() => {
     const savedCart = localStorage.getItem('urban_fit_cart');
     const savedWishlist = localStorage.getItem('urban_fit_wishlist');
@@ -32,14 +31,12 @@ export function CartProvider({ children }) {
     }
   }, []);
 
-  // 2. Save cart to localStorage whenever it changes
   useEffect(() => {
     if (cart.length > 0 || localStorage.getItem('urban_fit_cart')) {
       localStorage.setItem('urban_fit_cart', JSON.stringify(cart));
     }
   }, [cart]);
 
-  // 3. Save wishlist to localStorage whenever it changes
   useEffect(() => {
     if (wishlist.length > 0 || localStorage.getItem('urban_fit_wishlist')) {
       localStorage.setItem('urban_fit_wishlist', JSON.stringify(wishlist));
@@ -48,18 +45,13 @@ export function CartProvider({ children }) {
     }
   }, [wishlist]);
 
-  // --- CART HELPERS ---
-  
-  // Custom add to cart supporting size variants
   const addToCart = (product, size = 'M') => {
     setCart((prevCart) => {
-      // Find if this exact product ID WITH this exact size already exists in cart
       const existingItem = prevCart.find(
         (item) => item.id === product.id && item.selectedSize === size
       );
 
       if (existingItem) {
-        // If found, increment its quantity
         return prevCart.map((item) =>
           item.id === product.id && item.selectedSize === size
             ? { ...item, quantity: item.quantity + 1 }
@@ -67,13 +59,11 @@ export function CartProvider({ children }) {
         );
       }
       
-      // If not found, add a new line item with its unique selected size
       return [...prevCart, { ...product, quantity: 1, selectedSize: size }];
     });
     setIsCartOpen(true); 
   };
 
-  // Remove matching both product ID and specific size
   const removeFromCart = (productId, size) => {
     setCart((prevCart) => {
       const updatedCart = prevCart.filter(
@@ -86,7 +76,6 @@ export function CartProvider({ children }) {
     });
   };
 
-  // Update quantity matching both product ID and specific size
   const updateQuantity = (productId, size, amount) => {
     setCart((prevCart) => {
       const updatedCart = prevCart
@@ -106,7 +95,12 @@ export function CartProvider({ children }) {
     });
   };
 
-  // --- WISHLIST HELPERS ---
+  // --- NEW: Clear Cart Helper ---
+  const clearCart = () => {
+    setCart([]);
+    localStorage.removeItem('urban_fit_cart');
+  };
+
   const toggleWishlist = (product) => {
     setWishlist((prevWishlist) => {
       const exists = prevWishlist.find((item) => item.id === product.id);
@@ -122,7 +116,6 @@ export function CartProvider({ children }) {
     return wishlist.some((item) => item.id === productId);
   };
 
-  // Totals
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
 
@@ -133,6 +126,7 @@ export function CartProvider({ children }) {
         addToCart,
         removeFromCart,
         updateQuantity,
+        clearCart, // Exposed clearCart
         isCartOpen,
         setIsCartOpen,
         cartCount,

@@ -229,9 +229,13 @@ export default function Home() {
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Subtotal</span>
                     <span className="text-md font-black">${cartTotal.toFixed(2)}</span>
                   </div>
-                  <button className="w-full bg-black text-white text-center py-4 text-xs font-bold uppercase tracking-widest hover:bg-neutral-800 transition">
-                    Checkout
-                  </button>
+                  <Link 
+  href="/checkout"
+  onClick={() => setIsCartOpen(false)}
+  className="w-full bg-black text-white text-center py-4 text-xs font-bold uppercase tracking-widest hover:bg-neutral-800 transition block"
+>
+  Checkout
+</Link>
                 </div>
               </>
             )}
