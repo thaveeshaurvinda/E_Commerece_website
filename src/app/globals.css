@@ -1,26 +1,183 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@utility promo-bar {
+  @apply bg-black text-white text-xs uppercase tracking-widest text-center py-2 font-medium;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@utility navbar {
+  @apply border-b border-gray-200;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@utility nav-container {
+  @apply max-w-7xl mx-auto px-4 h-16 flex items-center justify-between;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility logo {
+  @apply text-2xl font-black tracking-widest uppercase;
+}
+
+@utility nav-links {
+  @apply hidden md:flex space-x-8 text-sm font-semibold tracking-wider uppercase;
+}
+
+@utility sale-link {
+  @apply text-red-600 font-bold;
+}
+
+@utility hero-section {
+  @apply relative bg-gray-100 py-24 px-6 text-center;
+}
+
+@utility hero-subtitle {
+  @apply text-sm font-bold uppercase tracking-widest text-gray-500;
+}
+
+@utility hero-title {
+  @apply mt-4 text-5xl font-black tracking-tight text-gray-900 uppercase;
+}
+
+@utility hero-promo {
+  @apply mt-6 text-lg tracking-wide font-medium;
+}
+
+@utility btn-black {
+  @apply bg-black text-white px-8 py-3.5 text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition inline-block;
+}
+
+@utility section-container {
+  @apply max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8;
+}
+
+@utility section-title {
+  @apply text-2xl font-black tracking-widest text-center uppercase mb-12;
+}
+
+@utility product-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8;
+}
+
+@utility product-card {
+  @apply relative border border-gray-100 p-4 transition hover:shadow-lg rounded-sm;
+}
+
+@utility product-image-box {
+  @apply aspect-square w-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold tracking-widest uppercase relative overflow-hidden;
+}
+
+@utility product-info {
+  @apply mt-4 flex justify-between items-start;
+}
+
+@utility product-name {
+  @apply text-sm font-bold tracking-wider text-gray-900 uppercase;
+}
+
+@utility product-price {
+  @apply text-sm font-semibold text-gray-600;
+}
+
+@utility badge-discount {
+  @apply absolute top-2 left-2 bg-red-600 text-white text-[10px] font-black px-2 py-1 uppercase tracking-widest;
+}
+
+@utility look-banner {
+  @apply bg-black text-white py-16 px-6 text-center my-12;
+}
+
+@utility look-title {
+  @apply text-3xl font-black tracking-widest uppercase mb-4;
+}
+
+@utility look-subtitle {
+  @apply text-sm tracking-widest text-gray-400 uppercase mb-6 block;
+}
+
+@utility badge-section {
+  @apply bg-gray-50 border-t border-b border-gray-100 py-12 px-6;
+}
+
+@utility badge-grid {
+  @apply max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center;
+}
+
+@utility badge-card {
+  @apply flex flex-col items-center p-4;
+}
+
+@utility badge-title {
+  @apply text-sm font-black tracking-widest uppercase mb-2;
+}
+
+@utility badge-desc {
+  @apply text-xs text-gray-500 tracking-wide;
+}
+
+@utility footer {
+  @apply bg-white border-t border-gray-200 py-8 text-center text-xs tracking-wider text-gray-400 uppercase;
+}
+
+/* Drawer & Cart Utilities */
+@utility cart-drawer {
+  @apply fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl p-6 flex flex-col transition-transform duration-300 ease-in-out;
+}
+
+@utility drawer-overlay {
+  @apply fixed inset-0 z-40 bg-black/40 backdrop-blur-xs;
+}
+
+@utility drawer-header {
+  @apply flex items-center justify-between border-b border-gray-100 pb-4 mb-4;
+}
+
+@utility drawer-title {
+  @apply text-lg font-black tracking-widest uppercase;
+}
+
+@utility cart-item-list {
+  @apply flex-1 overflow-y-auto space-y-4;
+}
+
+@utility cart-item {
+  @apply flex items-center justify-between border-b border-gray-50 pb-4;
+}
+
+@utility qty-btn {
+  @apply border border-gray-300 w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-gray-100;
+}
+
+@utility remove-btn {
+  @apply text-xs text-red-600 hover:underline uppercase font-bold tracking-wider;
+}
+
+@utility checkout-footer {
+  @apply border-t border-gray-200 pt-6 mt-4 space-y-4;
+}
+
+/* Product Detail Page Utilities */
+@utility detail-container {
+  @apply max-w-7xl mx-auto px-4 py-12 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-12;
+}
+
+@utility detail-image-box {
+  @apply aspect-square w-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-3xl tracking-widest uppercase rounded-sm border border-gray-100;
+}
+
+@utility detail-info-box {
+  @apply flex flex-col justify-center space-y-6;
+}
+
+@utility detail-title {
+  @apply text-4xl font-black tracking-tight uppercase text-gray-950;
+}
+
+@utility detail-price {
+  @apply text-2xl font-bold text-gray-700;
+}
+
+@utility size-btn {
+  @apply border border-gray-300 px-4 py-2 text-xs font-bold hover:border-black transition uppercase;
+}
+
+@utility size-btn-active {
+  @apply border-black bg-black text-white px-4 py-2 text-xs font-bold uppercase;
 }
