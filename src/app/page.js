@@ -147,6 +147,7 @@ export default function Home() {
         </div>
       </section>
 
+
       {/* 5. Shop The Look Editorial Callout */}
       <section className="bg-neutral-900 text-white text-center py-20 px-6">
         <div className="max-w-3xl mx-auto">
