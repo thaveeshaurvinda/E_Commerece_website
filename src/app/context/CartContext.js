@@ -10,13 +10,15 @@ export function CartProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
+  // Load initial state safely on mount (client-side only)
   useEffect(() => {
     const savedCart = localStorage.getItem('urban_fit_cart');
     const savedWishlist = localStorage.getItem('urban_fit_wishlist');
     
     if (savedCart) {
       try {
-        setCart(JSON.parse(savedCart));
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) setCart(parsed);
       } catch (error) {
         console.error("Failed to parse cart", error);
       }
@@ -24,21 +26,25 @@ export function CartProvider({ children }) {
     
     if (savedWishlist) {
       try {
-        setWishlist(JSON.parse(savedWishlist));
+        const parsed = JSON.parse(savedWishlist);
+        if (Array.isArray(parsed)) setWishlist(parsed);
       } catch (error) {
         console.error("Failed to parse wishlist", error);
       }
     }
   }, []);
 
+  // Save changes to localStorage safely
   useEffect(() => {
-    if (cart.length > 0 || localStorage.getItem('urban_fit_cart')) {
+    if (cart.length > 0) {
       localStorage.setItem('urban_fit_cart', JSON.stringify(cart));
+    } else {
+      localStorage.removeItem('urban_fit_cart');
     }
   }, [cart]);
 
   useEffect(() => {
-    if (wishlist.length > 0 || localStorage.getItem('urban_fit_wishlist')) {
+    if (wishlist.length > 0) {
       localStorage.setItem('urban_fit_wishlist', JSON.stringify(wishlist));
     } else {
       localStorage.removeItem('urban_fit_wishlist');
@@ -69,9 +75,6 @@ export function CartProvider({ children }) {
       const updatedCart = prevCart.filter(
         (item) => !(item.id === productId && item.selectedSize === size)
       );
-      if (updatedCart.length === 0) {
-        localStorage.removeItem('urban_fit_cart');
-      }
       return updatedCart;
     });
   };
@@ -81,21 +84,15 @@ export function CartProvider({ children }) {
       const updatedCart = prevCart
         .map((item) => {
           if (item.id === productId && item.selectedSize === size) {
-            const newQty = item.quantity + amount;
-            return { ...item, quantity: newQty };
+            return { ...item, quantity: item.quantity + amount };
           }
           return item;
         })
         .filter((item) => item.quantity > 0);
-
-      if (updatedCart.length === 0) {
-        localStorage.removeItem('urban_fit_cart');
-      }
       return updatedCart;
     });
   };
 
-  // --- NEW: Clear Cart Helper ---
   const clearCart = () => {
     setCart([]);
     localStorage.removeItem('urban_fit_cart');
@@ -113,7 +110,7 @@ export function CartProvider({ children }) {
   };
 
   const isInWishlist = (productId) => {
-    return wishlist.some((item) => item.id === productId);
+    return Array.isArray(wishlist) && wishlist.some((item) => item.id === productId);
   };
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -126,7 +123,7 @@ export function CartProvider({ children }) {
         addToCart,
         removeFromCart,
         updateQuantity,
-        clearCart, // Exposed clearCart
+        clearCart,
         isCartOpen,
         setIsCartOpen,
         cartCount,

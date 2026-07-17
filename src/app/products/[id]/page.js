@@ -8,13 +8,21 @@ import { products } from "../../products";
 export default function ProductDetail() {
   const params = useParams();
   const router = useRouter();
-  const { addToCart, toggleWishlist, isInWishlist } = useCart();
+  const { 
+    addToCart, 
+    toggleWishlist, 
+    isInWishlist, 
+    isWishlistOpen, 
+    setIsWishlistOpen,
+    isCartOpen,
+    setIsCartOpen
+  } = useCart();
   const [selectedSize, setSelectedSize] = useState('M');
 
   // Safely grab the product ID from the URL params
   const productId = params?.id;
 
-  // Crucial Fix: Compare IDs as strings to support both "m1", "w1", and numeric IDs
+  // Compare IDs as strings to support both "m1", "w1", and numeric IDs
   const product = products.find((p) => String(p.id) === String(productId));
 
   // Fallback if product is truly not found
@@ -50,12 +58,22 @@ export default function ProductDetail() {
       <div className="max-w-6xl mx-auto px-6 pt-12 md:pt-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
           
-          {/* Left Column: Product Visual Placeholder */}
-          <div className="relative aspect-[3/4] bg-gray-100 flex items-center justify-center font-black text-2xl tracking-widest border border-gray-100">
-            {product.placeholderText}
+          {/* Left Column: Product Image Container */}
+          <div className="relative aspect-[3/4] bg-gray-100 flex items-center justify-center border border-gray-100 overflow-hidden select-none">
+            {product.image ? (
+              <img 
+                src={product.image} 
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="font-black text-2xl tracking-widest text-gray-300">
+                {product.placeholderText}
+              </span>
+            )}
             
             {product.discount && (
-              <span className="absolute top-6 left-6 bg-red-500 text-white text-xs font-black uppercase tracking-widest px-3 py-1">
+              <span className="absolute top-6 left-6 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 z-10">
                 {product.discount}
               </span>
             )}
@@ -112,7 +130,6 @@ export default function ProductDetail() {
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => {
-                  // If it's an accessory, pass null or default size
                   const finalSize = product.category === "Accessories" ? "OS" : selectedSize;
                   addToCart(product, finalSize);
                 }}
@@ -129,7 +146,7 @@ export default function ProductDetail() {
               </button>
             </div>
 
-            {/* Details Dropdown List (Aesthetic Touch) */}
+            {/* Details Dropdown List */}
             <div className="mt-12 border-t border-gray-100 pt-6 space-y-4">
               <details className="group outline-none">
                 <summary className="list-none flex justify-between items-center text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black cursor-pointer transition">

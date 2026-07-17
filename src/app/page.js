@@ -1,429 +1,527 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { useCart } from "./context/CartContext";
+import { useCart } from "@/app/context/CartContext";
+import { useUser } from "@/app/context/UserContext";
 import { products } from "./products";
 
 export default function Home() {
   const { 
-    addToCart, 
     cart, 
-    removeFromCart, 
-    updateQuantity, 
+    addToCart, 
     isCartOpen, 
     setIsCartOpen, 
-    cartCount, 
-    cartTotal,
-    wishlist,
-    toggleWishlist,
-    isInWishlist,
-    isWishlistOpen,
-    setIsWishlistOpen
+    removeFromCart, 
+    updateQuantity, 
+    wishlist = [], 
+    toggleWishlist, 
+    isWishlistOpen, 
+    setIsWishlistOpen,
+    cartTotal
   } = useCart();
+  
+  const { user, logout } = useUser();
 
-  // --- 1. FILTER & SEARCH STATES ---
-  const [searchTerm, setSearchTerm] = useState('');
+  // State Management for Filters, Search, and Sorting
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('default');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('Featured');
 
-  // --- 2. DYNAMICALLY ENSURE CATEGORIES EXIST ---
-  // In case your products.js items do not have a "category" property, 
-  // we dynamically inject them here so the filters work out-of-the-box.
-  const processedProducts = useMemo(() => {
-    return products.map((product, index) => {
-      if (product.category) return product;
-      
-      // Fallback categorization based on index/id if undefined
-      let assignedCategory = 'Accessories';
-      if (index % 3 === 0) assignedCategory = 'Men';
-      else if (index % 3 === 1) assignedCategory = 'Women';
-      
-      return { ...product, category: assignedCategory };
-    });
-  }, []);
+  const categories = ['All', 'Men', 'Women', 'Accessories'];
 
-  // --- 3. FILTER & SORT LOGIC ---
-  const filteredProducts = useMemo(() => {
-    return processedProducts
-      .filter((product) => {
-        const matchesCategory = 
-          selectedCategory === 'All' || 
-          product.category.toLowerCase() === selectedCategory.toLowerCase();
+  // 1. Category Filtering Logic
+  let processedProducts = selectedCategory === 'All' 
+    ? [...products] 
+    : products.filter(p => p.category.toLowerCase() === selectedCategory.toLowerCase());
 
-        const matchesSearch = 
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          product.description.toLowerCase().includes(searchTerm.toLowerCase());
+  // 2. Search Query Logic
+  if (searchQuery.trim() !== '') {
+    processedProducts = processedProducts.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }
 
-        return matchesCategory && matchesSearch;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'low-to-high') return a.price - b.price;
-        if (sortBy === 'high-to-low') return b.price - a.price;
-        return 0; // default sorting (order in array)
-      });
-  }, [processedProducts, selectedCategory, searchTerm, sortBy]);
+  // 3. Sorting Logic
+  if (sortBy === 'Price: Low to High') {
+    processedProducts.sort((a, b) => a.price - b.price);
+  } else if (sortBy === 'Price: High to Low') {
+    processedProducts.sort((a, b) => b.price - a.price);
+  } else if (sortBy === 'Discount') {
+    // Show discounted items first
+    processedProducts.sort((a, b) => (b.discount ? 1 : 0) - (a.discount ? 1 : 0));
+  }
 
   return (
-    <main className="min-h-screen bg-white text-black font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-white text-black font-sans antialiased">
       
-      {/* Promo Announcement Bar */}
-      <div className="promo-bar bg-black text-white text-center py-2 text-xs tracking-widest font-bold uppercase">
-        Free Shipping Worldwide on Orders Over $75
+      {/* Top Banner Notice */}
+      <div className="bg-black text-white text-[10px] font-black tracking-widest uppercase py-2.5 text-center border-b border-neutral-900">
+        Free Worldwide Shipping On Orders Over $75 • Code: URBANRUN
       </div>
 
-      {/* Navigation Header */}
-      <header className="border-b border-gray-100 py-4 px-6 sticky top-0 bg-white/95 backdrop-blur z-40">
+      {/* Main Navigation Header */}
+      <header className="border-b border-gray-100 py-6 px-6 sticky top-0 bg-white/95 backdrop-blur z-40">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
-          {/* Brand Logo */}
-          <Link 
-            href="/" 
-            onClick={() => { setSelectedCategory('All'); setSearchTerm(''); }}
-            className="text-xl font-black tracking-widest cursor-pointer"
-          >
-            URBAN FIT
-          </Link>
-          
-          {/* Category Links with Active Highlighting */}
-          <nav className="flex items-center space-x-6 lg:space-x-8 text-xs font-bold uppercase tracking-widest">
-            {['All', 'Men', 'Women', 'Accessories'].map((cat) => {
-              const displayLabel = cat === 'All' ? 'Shop All' : cat;
-              const isActive = selectedCategory.toLowerCase() === cat.toLowerCase();
-              return (
+          {/* Logo & Category Navigation */}
+          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-12 w-full md:w-auto">
+            <h1 className="text-2xl font-black tracking-widest select-none cursor-default text-center sm:text-left">
+              URBAN FIT
+            </h1>
+            
+            <nav className="flex space-x-6 justify-center">
+              {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`transition-colors duration-150 py-1 border-b-2 ${
-                    isActive 
-                      ? 'border-black text-black font-black' 
-                      : 'border-transparent text-gray-400 hover:text-black'
+                  className={`text-xs font-black uppercase tracking-widest transition-all pb-1 ${
+                    selectedCategory === cat 
+                      ? 'text-black border-b-2 border-black' 
+                      : 'text-gray-400 hover:text-black'
                   }`}
                 >
-                  {displayLabel}
+                  {cat}
                 </button>
-              );
-            })}
-          </nav>
-          
-          {/* Search & Actions Bar */}
-          <div className="flex items-center space-x-4 w-full md:w-auto justify-end">
-            
-            {/* Minimalist Search Input */}
-            <div className="relative w-full max-w-[180px]">
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-xs outline-none focus:border-black transition uppercase tracking-wider"
-              />
-              {searchTerm && (
-                <button 
-                  onClick={() => setSearchTerm('')} 
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 hover:text-black"
-                >
-                  ✕
-                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Real-time Search Input */}
+          <div className="w-full md:max-w-xs relative">
+            <input 
+              type="text" 
+              placeholder="SEARCH PRODUCTS..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 text-xs px-4 py-2.5 rounded-none tracking-widest focus:border-black outline-none uppercase font-bold transition-all placeholder-gray-400"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 hover:text-black"
+              >
+                CLEAR
+              </button>
+            )}
+          </div>
+
+          {/* User Status, Favorites, & Bag */}
+          <div className="flex items-center space-x-6 w-full md:w-auto justify-end">
+            <div className="flex items-center space-x-4 shrink-0 text-xs">
+              {user ? (
+                <div className="flex items-center space-x-2 font-bold uppercase tracking-wider">
+                  <span>Hey, {user.firstName}!</span>
+                  <button 
+                    onClick={logout} 
+                    className="text-[10px] text-red-500 hover:underline tracking-widest uppercase font-bold"
+                  >
+                    (Sign Out)
+                  </button>
+                </div>
+              ) : (
+                <Link href="/auth" className="hover:underline uppercase font-bold tracking-widest">
+                  Sign In
+                </Link>
               )}
+
+              <button 
+                onClick={() => setIsWishlistOpen(true)} 
+                className="hover:underline uppercase font-bold flex items-center space-x-1 shrink-0 tracking-widest"
+              >
+                <span>Favorites ({(wishlist || []).length})</span>
+              </button>
             </div>
 
             <button 
-              onClick={() => setIsWishlistOpen(true)} 
-              className="hover:underline uppercase text-xs font-bold flex items-center space-x-1 shrink-0"
+              onClick={() => setIsCartOpen(true)}
+              className="bg-black text-white text-xs font-black uppercase tracking-widest px-6 py-3 hover:bg-neutral-800 transition"
             >
-              <span>Favorites ({wishlist.length})</span>
-            </button>
-            
-            <button 
-              onClick={() => setIsCartOpen(true)} 
-              className="hover:underline uppercase text-xs font-bold shrink-0"
-            >
-              Cart ({cartCount})
+              Bag ({cart.reduce((sum, item) => sum + item.quantity, 0)})
             </button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="text-center py-16 px-4 bg-gray-50">
-        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">New Collection</p>
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-4">
-          {selectedCategory === 'All' ? 'Summer Essentials' : `${selectedCategory} Collection`}
-        </h1>
-        <p className="text-sm font-bold tracking-widest text-red-500 uppercase">DROP NOW LIVE • UP TO 50% OFF</p>
+      {/* Hero Banner Component */}
+      <section className="bg-neutral-50 border-b border-gray-100 py-20 px-6 text-center">
+        <div className="max-w-3xl mx-auto">
+          <span className="text-[10px] font-black uppercase tracking-widest text-red-500 block mb-3">
+            Drop Now Live • Up to 50% Off
+          </span>
+          <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4">
+            SUMMER ESSENTIALS
+          </h2>
+          <p className="text-xs text-gray-500 uppercase tracking-widest max-w-md mx-auto leading-relaxed">
+            Technical garments crafted for modern movement. Styled for high performance, engineered for absolute comfort.
+          </p>
+        </div>
       </section>
 
-      {/* Dynamic Filter Controls & Sorting Toolbar */}
-      <div className="max-w-7xl mx-auto px-6 pt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-gray-100 pb-6">
-        <div className="text-xs uppercase tracking-wider font-bold text-gray-400">
-          Showing <span className="text-black font-black">{filteredProducts.length}</span> Products
-          {searchTerm && <span> for "{searchTerm}"</span>}
-          {selectedCategory !== 'All' && <span> in <span className="text-black">{selectedCategory}</span></span>}
+      {/* Product Catalog Sorting Controls */}
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 pb-4 border-b border-gray-100 gap-4">
+          <h2 className="text-xs font-black uppercase tracking-widest text-gray-400">
+            Showing {processedProducts.length} Products
+          </h2>
+          
+          <div className="flex items-center space-x-3">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sort By:</span>
+            <select 
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="border border-gray-200 text-[10px] font-black uppercase tracking-widest px-3 py-2 bg-white rounded-none outline-none focus:border-black cursor-pointer"
+            >
+              <option value="Featured">Featured</option>
+              <option value="Price: Low to High">Price: Low to High</option>
+              <option value="Price: High to Low">Price: High to Low</option>
+              <option value="Discount">On Sale</option>
+            </select>
+          </div>
         </div>
 
-        {/* Sorting Dropdown */}
-        <div className="flex items-center space-x-2 self-end sm:self-auto">
-          <label htmlFor="sort" className="text-xs uppercase tracking-widest font-bold text-gray-400">Sort By:</label>
-          <select
-            id="sort"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="border border-gray-200 text-xs font-bold uppercase tracking-wider py-1.5 px-3 outline-none focus:border-black rounded bg-white"
-          >
-            <option value="default">Featured</option>
-            <option value="low-to-high">Price: Low to High</option>
-            <option value="high-to-low">Price: High to Low</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Dynamic Product Grid */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        {filteredProducts.length === 0 ? (
+        {/* Catalog Grid Area */}
+        {processedProducts.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-400 font-bold tracking-widest uppercase text-xs mb-4">No Products Match Your Criteria</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">No matching items found</p>
             <button 
-              onClick={() => { setSelectedCategory('All'); setSearchTerm(''); setSortBy('default'); }} 
-              className="bg-black text-white text-xs font-bold uppercase tracking-widest px-6 py-3"
+              onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
+              className="bg-black text-white text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-neutral-800 transition"
             >
               Reset Filters
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {filteredProducts.map((product) => {
-              const favorited = isInWishlist(product.id);
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-12">
+            {processedProducts.map((product) => {
+              const isFavorited = (wishlist || []).some(item => item.id === product.id);
+
               return (
-                <div key={product.id} className="group relative flex flex-col justify-between">
-                  
-                  {/* Product Image Container */}
-                  <div className="relative aspect-[3/4] bg-gray-100 flex items-center justify-center font-black text-lg tracking-widest mb-4 overflow-hidden border border-gray-100">
-                    <Link href={`/products/${product.id}`} className="absolute inset-0 flex items-center justify-center cursor-pointer hover:opacity-85 transition">
-                      {product.placeholderText}
-                    </Link>
-                    
-                    {product.discount && (
-                      <span className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 pointer-events-none">
-                        {product.discount}
-                      </span>
-                    )}
-
-                    {/* Wishlist Heart Toggle Button */}
-                    <button 
-                      onClick={() => toggleWishlist(product)}
-                      className="absolute top-4 right-4 bg-white text-black p-2 rounded-full shadow-sm hover:scale-110 transition z-10"
-                      aria-label="Toggle Wishlist"
-                    >
-                      {favorited ? (
-                        <span className="text-red-500">❤️</span>
+                <div key={product.id} className="group relative flex flex-col justify-between border border-gray-100 p-3 hover:shadow-md transition duration-300">
+                  <div>
+                    <div className="relative aspect-[3/4] bg-gray-100 mb-4 flex items-center justify-center border border-gray-200 select-none overflow-hidden">
+                      {/* Render real image if it exists, otherwise fall back to placeholder text */}
+                      {product.image ? (
+                        <img 
+                          src={product.image} 
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
                       ) : (
-                        <span className="text-gray-400 hover:text-black">🖤</span>
+                        <span className="font-black text-xl tracking-widest text-gray-300">
+                          {product.placeholderText}
+                        </span>
                       )}
-                    </button>
-                  </div>
+                      
+                      {/* Discount Badge */}
+                      {product.discount && (
+                        <span className="absolute top-4 left-4 bg-red-500 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 z-10">
+                          {product.discount}
+                        </span>
+                      )}
 
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Link href={`/products/${product.id}`} className="hover:underline">
-                        <h3 className="text-sm font-bold uppercase tracking-wider">{product.name}</h3>
-                      </Link>
-                      {/* Subtitle containing category label */}
-                      <span className="text-[9px] text-gray-400 block uppercase tracking-widest mt-0.5">{product.category}</span>
-                      <button 
-                        onClick={() => addToCart(product, 'M')}
-                        className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black transition"
+                      {/* Wishlist Button */}
+                      <button
+                        onClick={() => toggleWishlist(product)}
+                        className="absolute top-4 right-4 bg-white text-black p-2.5 rounded-full shadow-md hover:scale-110 transition z-10"
+                        aria-label="Toggle Wishlist"
                       >
-                        + Add To Cart
+                        {isFavorited ? '❤️' : '🖤'}
                       </button>
+
+                      {/* Hover Overlay */}
+                      <Link 
+                        href={`/products/${product.id}`}
+                        className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center z-10"
+                      >
+                        <span className="bg-white text-black text-[10px] font-black uppercase tracking-widest px-5 py-2.5 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                          View Details
+                        </span>
+                      </Link>
                     </div>
-                    <p className="text-sm font-black">${product.price.toFixed(2)}</p>
+                    <div className="flex justify-between items-start mb-1 px-1">
+                      <h3 className="text-xs font-black uppercase tracking-tight max-w-[70%]">
+                        <Link href={`/products/${product.id}`} className="hover:underline">
+                          {product.name}
+                        </Link>
+                      </h3>
+                      <p className="text-xs font-black">${product.price.toFixed(2)}</p>
+                    </div>
+                    
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-6 px-1">
+                      {product.category}
+                    </p>
                   </div>
 
+                  <button
+                    onClick={() => addToCart(product, product.category === 'Accessories' ? 'OS' : 'M')}
+                    className="w-full bg-neutral-900 text-white text-[10px] font-bold uppercase tracking-widest py-3.5 hover:bg-black transition duration-200"
+                  >
+                    Quick Add
+                  </button>
                 </div>
               );
             })}
           </div>
         )}
-      </section>
+      </main>
 
-      {/* Shop The Look Editorial Callout */}
-      <section className="bg-neutral-900 text-white text-center py-20 px-6">
-        <div className="max-w-3xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-2">Limited Time Offer</span>
-          <h2 className="text-3xl font-black uppercase tracking-tight mb-4">Shop The Look</h2>
-          <p className="text-gray-400 text-sm tracking-wide max-w-md mx-auto mb-8">
-            Elevate your streetwear game with selected summer drops.
-          </p>
-          <button 
-            onClick={() => { setSelectedCategory('All'); window.scrollTo({ top: 400, behavior: 'smooth' }); }} 
-            className="bg-white text-black px-8 py-3.5 text-sm font-bold uppercase tracking-widest hover:bg-gray-100 transition inline-block"
-          >
-            Explore Styles
-          </button>
-        </div>
-      </section>
-
-      {/* Brand Trust Badges */}
-      <section className="bg-gray-50 border-y border-gray-100 py-12">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div className="text-xl mb-2">📦</div>
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Fast Delivery</h3>
-            <p className="text-xs text-gray-500 tracking-wider">Across The World</p>
-          </div>
-          <div>
-            <div className="text-xl mb-2">🛡️</div>
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">Secure Payment</h3>
-            <p className="text-xs text-gray-500 tracking-wider">100% Protected</p>
-          </div>
-          <div>
-            <div className="text-xl mb-2">💬</div>
-            <h3 className="text-xs font-bold uppercase tracking-widest mb-1">24/7 Support</h3>
-            <p className="text-xs text-gray-500 tracking-wider">We're Here To Help</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Cart Slide-Over Drawer */}
+      {/* --- Slideout Component Panel: Shopping Cart Bag --- */}
       {isCartOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-50 transition-opacity" onClick={() => setIsCartOpen(false)} />
-          
-          <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col p-6">
-            <div className="flex justify-between items-center pb-6 border-b border-gray-100">
-              <h2 className="text-md font-black uppercase tracking-wider">Your Cart ({cartCount})</h2>
-              <button onClick={() => setIsCartOpen(false)} className="text-xl font-bold hover:text-gray-500">
-                ✕
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between font-sans">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="text-sm font-black uppercase tracking-widest">Shopping Bag ({cart.length})</h2>
+              <button onClick={() => setIsCartOpen(false)} className="text-xs font-bold text-gray-400 hover:text-black uppercase tracking-widest">
+                Close ✕
               </button>
             </div>
 
-            {cart.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <p className="text-gray-400 font-bold tracking-widest uppercase text-xs mb-4">Your cart is empty</p>
-                <button onClick={() => setIsCartOpen(false)} className="bg-black text-white text-xs font-bold uppercase tracking-widest px-6 py-3">Continue Shopping</button>
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-y-auto py-4 space-y-4">
-                  {cart.map((item) => {
-                    const itemSize = item.selectedSize || 'M';
-                    return (
-                      <div key={`${item.id}-${itemSize}`} className="flex justify-between items-center border-b border-gray-50 pb-4">
-                        <div>
-                          <h4 className="text-xs font-bold uppercase tracking-wider">{item.name}</h4>
-                          <p className="text-[10px] bg-gray-100 text-black px-2 py-0.5 rounded font-bold uppercase inline-block mt-1">
-                            Size: {itemSize}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">${item.price.toFixed(2)}</p>
-                          
-                          <div className="flex items-center space-x-2 mt-2">
-                            <button 
-                              onClick={() => updateQuantity(item.id, itemSize, -1)} 
-                              className="border border-gray-300 w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-50 font-bold"
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-bold px-1">{item.quantity}</span>
-                            <button 
-                              onClick={() => updateQuantity(item.id, itemSize, 1)} 
-                              className="border border-gray-300 w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-50 font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center">
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Your bag is empty</p>
+                  <button onClick={() => setIsCartOpen(false)} className="text-[10px] font-black uppercase tracking-widest underline text-black">
+                    Continue Browsing
+                  </button>
+                </div>
+              ) : (
+                cart.map((item) => (
+                  <div key={`${item.id}-${item.selectedSize}`} className="flex items-center space-x-4 border-b border-gray-50 pb-4">
+                    <div className="w-16 h-20 bg-gray-100 border border-gray-200 shrink-0 overflow-hidden relative">
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center font-black text-[10px] text-gray-300">
+                          {item.placeholderText}
                         </div>
-                        
-                        <div className="text-right flex flex-col items-end space-y-2">
-                          <span className="text-xs font-black">${(item.price * item.quantity).toFixed(2)}</span>
-                          <button 
-                            onClick={() => removeFromCart(item.id, itemSize)} 
-                            className="text-[10px] text-red-500 font-bold uppercase tracking-wider hover:underline"
-                          >
-                            Remove
-                          </button>
-                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xs font-black uppercase tracking-tight">{item.name}</h4>
+                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mt-0.5">Size: {item.selectedSize}</p>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.selectedSize, -1)}
+                          className="px-2 py-0.5 border border-gray-200 text-xs hover:border-black"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.selectedSize, 1)}
+                          className="px-2 py-0.5 border border-gray-200 text-xs hover:border-black"
+                        >
+                          +
+                        </button>
                       </div>
-                    );
-                  })}
-                </div>
-
-                <div className="border-t border-gray-100 pt-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Subtotal</span>
-                    <span className="text-md font-black">${cartTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-black">${(item.price * item.quantity).toFixed(2)}</p>
+                      <button 
+                        onClick={() => removeFromCart(item.id, item.selectedSize)}
+                        className="text-[9px] text-red-500 font-bold uppercase tracking-widest mt-2 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                  <Link 
-                    href="/checkout"
-                    onClick={() => setIsCartOpen(false)}
-                    className="w-full bg-black text-white text-center py-4 text-xs font-bold uppercase tracking-widest hover:bg-neutral-800 transition block"
-                  >
-                    Checkout
-                  </Link>
+                ))
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="p-6 border-t border-gray-100 bg-neutral-50">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Estimated Total</span>
+                  <span className="text-base font-black">${(cartTotal || 0).toFixed(2)}</span>
                 </div>
-              </>
+                <Link href="/checkout" className="block text-center w-full bg-black text-white text-xs font-black uppercase tracking-widest py-4 hover:bg-neutral-800 transition">
+                  Proceed to Checkout
+                </Link>
+              </div>
             )}
           </div>
-        </>
+        </div>
       )}
 
-      {/* Interactive Wishlist Slide-Over Drawer */}
+      {/* --- Slideout Component Panel: Wishlist Favorites --- */}
       {isWishlistOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-50 transition-opacity" onClick={() => setIsWishlistOpen(false)} />
-          
-          <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col p-6">
-            <div className="flex justify-between items-center pb-6 border-b border-gray-100">
-              <h2 className="text-md font-black uppercase tracking-wider">Your Favorites ({wishlist.length})</h2>
-              <button onClick={() => setIsWishlistOpen(false)} className="text-xl font-bold hover:text-gray-500">
-                ✕
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between font-sans">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="text-sm font-black uppercase tracking-widest">Favorites ({(wishlist || []).length})</h2>
+              <button onClick={() => setIsWishlistOpen(false)} className="text-xs font-bold text-gray-400 hover:text-black uppercase tracking-widest">
+                Close ✕
               </button>
             </div>
 
-            {wishlist.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <p className="text-gray-400 font-bold tracking-widest uppercase text-xs mb-4">Your wishlist is empty</p>
-                <button onClick={() => setIsWishlistOpen(false)} className="bg-black text-white text-xs font-bold uppercase tracking-widest px-6 py-3">Explore Collections</button>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto py-4 space-y-4">
-                {wishlist.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center border-b border-gray-50 pb-4">
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider">{item.name}</h4>
-                      <p className="text-xs text-gray-500 mt-1">${item.price.toFixed(2)}</p>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {(wishlist || []).length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center">
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">No favorites added yet</p>
+                </div>
+              ) : (
+                wishlist.map((item) => (
+                  <div key={item.id} className="flex items-center space-x-4 border-b border-gray-50 pb-4">
+                    <div className="w-16 h-20 bg-gray-100 border border-gray-200 shrink-0 overflow-hidden relative">
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center font-black text-[10px] text-gray-300">
+                          {item.placeholderText}
+                        </div>
+                      )}
                     </div>
-                    
-                    <div className="flex items-center space-x-3">
+                    <div className="flex-1">
+                      <h4 className="text-xs font-black uppercase tracking-tight">{item.name}</h4>
+                      <p className="text-xs font-black mt-1">${item.price.toFixed(2)}</p>
+                    </div>
+                    <div className="flex flex-col space-y-2 items-end">
                       <button 
                         onClick={() => {
-                          addToCart(item, 'M');
+                          addToCart(item, item.category === 'Accessories' ? 'OS' : 'M');
                           toggleWishlist(item);
                         }}
-                        className="bg-black text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 hover:bg-neutral-800 transition"
+                        className="bg-black text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 hover:bg-neutral-800"
                       >
-                        Add to Cart
+                        Add to Bag
                       </button>
                       <button 
-                        onClick={() => toggleWishlist(item)} 
-                        className="text-xs hover:scale-110 transition"
-                        title="Remove from favorites"
+                        onClick={() => toggleWishlist(item)}
+                        className="text-[9px] text-gray-400 font-bold uppercase tracking-widest hover:text-black"
                       >
-                        ❌
+                        Remove
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </>
+        </div>
       )}
+      {/*Newsletter Signup*/}
+      <section className="border-t border-b border-gray-100 py-16 px-6 bg-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-3">
+            Join the Club
+          </span>
+          <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight mb-4">
+            Get 10% Off Your First Order
+          </h3>
+          <p className="text-xs text-gray-500 uppercase tracking-widest max-w-md mx-auto mb-8 leading-relaxed">
+            Subscribe to receive early access to new collections, exclusive drops, and private sales.
+          </p>
+          <form 
+            onSubmit={(e) => { e.preventDefault(); alert('Subscribed successfully!'); }} 
+            className="flex flex-col sm:flex-row max-w-md mx-auto gap-3"
+          >
+            <input 
+              type="email" 
+              placeholder="ENTER YOUR EMAIL..." 
+              required
+              className="flex-1 bg-gray-50 border border-gray-200 text-xs px-4 py-3 rounded-none tracking-widest focus:border-black outline-none uppercase font-bold transition-all placeholder-gray-400"
+            />
+            <button 
+              type="submit" 
+              className="bg-black text-white text-xs font-black uppercase tracking-widest px-8 py-3.5 hover:bg-neutral-800 transition shrink-0"
+            >
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="bg-black text-white/50 text-center py-8 text-xs border-t border-neutral-900">
-        © {new Date().getFullYear()} Urban Fit. All rights reserved.
+      {/* --- NEW SECTION: Brand Values Bar --- */}
+      <section className="bg-neutral-50 py-10 px-6 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-widest mb-2">Express Shipping</h4>
+            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Free worldwide delivery on orders over $75</p>
+          </div>
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-widest mb-2">30-Day Returns</h4>
+            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Hassle-free sizing exchanges and return window</p>
+          </div>
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-widest mb-2">Secure Checkout</h4>
+            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">100% encrypted secure payments</p>
+          </div>
+        </div>
+      </section>
+
+      {/* --- NEW SECTION: Main Footer --- */}
+      <footer className="bg-white text-black py-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+            
+            {/* Column 1: Brand Info */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-black tracking-widest">URBAN FIT</h3>
+              <p className="text-[11px] text-gray-400 uppercase font-bold tracking-widest leading-relaxed">
+                Technical streetwear garments engineered for modern movement. Styled for high performance, crafted for absolute comfort.
+              </p>
+            </div>
+
+            {/* Column 2: Shop Links */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest mb-4">Shop</h4>
+              <ul className="space-y-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <li><button onClick={() => setSelectedCategory('All')} className="hover:text-black transition">Shop All</button></li>
+                <li><button onClick={() => setSelectedCategory('Men')} className="hover:text-black transition">Men's Collection</button></li>
+                <li><button onClick={() => setSelectedCategory('Women')} className="hover:text-black transition">Women's Collection</button></li>
+                <li><button onClick={() => setSelectedCategory('Accessories')} className="hover:text-black transition">Accessories</button></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Help & Support */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest mb-4">Support</h4>
+              <ul className="space-y-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <li><a href="#" className="hover:text-black transition">Contact Us</a></li>
+                <li><a href="#" className="hover:text-black transition">Shipping & Delivery</a></li>
+                <li><a href="#" className="hover:text-black transition">Returns & Exchanges</a></li>
+                <li><a href="#" className="hover:text-black transition">Size Guide</a></li>
+              </ul>
+            </div>
+
+            {/* Column 4: Legal / Policies */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest mb-4">Legal</h4>
+              <ul className="space-y-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <li><a href="#" className="hover:text-black transition">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-black transition">Terms of Service</a></li>
+                <li><a href="#" className="hover:text-black transition">Cookie Settings</a></li>
+              </ul>
+            </div>
+
+          </div>
+
+          <hr className="border-gray-100 mb-8" />
+
+          {/* Bottom Copyright & Social Links */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+              © {new Date().getFullYear()} URBAN FIT INC. All Rights Reserved.
+            </span>
+            <div className="flex space-x-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
+              <a href="#" className="hover:text-black transition">Instagram</a>
+              <a href="#" className="hover:text-black transition">TikTok</a>
+              <a href="#" className="hover:text-black transition">Twitter</a>
+            </div>
+          </div>
+        </div>
       </footer>
-
-    </main>
+    </div>
   );
 }
